@@ -298,9 +298,15 @@ function parseCSV(text){
 }
 
 function handleCSVUpload(file){
-  const r=new FileReader();
-  r.onload=function(e){try{const items=parseCSV(e.target.result);schedule=items;checked={};saveData();toast("✓ "+items.length+" Einträge importiert");render();}catch(err){toast("✗ "+err.message,true);}};
-  r.readAsText(file,"UTF-8");
+  const tryParse=(encoding)=>{const r=new FileReader();
+    r.onload=function(e){
+      const text=e.target.result;
+      // If UTF-8 produced replacement chars, retry with Latin-1
+      if(encoding==="UTF-8"&&/\ufffd/.test(text)){tryParse("ISO-8859-1");return;}
+      try{const items=parseCSV(text);schedule=items;checked={};saveData();toast("✓ "+items.length+" Einträge importiert");render();}
+      catch(err){toast("✗ "+err.message,true);}};
+    r.readAsText(file,encoding);};
+  tryParse("UTF-8");
 }
 
 function exportCSV(){
