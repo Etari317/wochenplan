@@ -204,6 +204,21 @@ body {
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 .ring-text { font-family: var(--font-mono); font-weight: 700; }
 
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: flex-end; justify-content: center; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.modal-box { background: #111827; border: 1px solid rgba(148,163,184,0.12); border-radius: 20px 20px 0 0; padding: 24px 20px 32px; width: 100%; max-width: 540px; max-height: 75vh; overflow-y: auto; }
+.modal-title { font-size: 16px; font-weight: 800; color: var(--text-primary); margin-bottom: 16px; }
+.modal-close { float: right; background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; margin-top: -4px; }
+.tpl-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.tpl-row { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; }
+.tpl-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.tpl-meta { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+.tpl-load { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.2); color: var(--accent-blue); border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.tpl-del { background: none; border: none; color: var(--text-dark); cursor: pointer; font-size: 14px; padding: 2px 6px; }
+.tpl-del:hover { color: #F87171; }
+.tpl-save-row { display: flex; gap: 8px; }
+.tpl-input { flex: 1; background: #1E293B; border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; color: var(--text-secondary); font-size: 13px; font-family: var(--font-body); }
+.badge-onetime { background: rgba(167,139,250,0.15); color: var(--accent-purple); border: 1px solid rgba(167,139,250,0.3); font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 700; flex-shrink: 0; }
 /* History / Streak */
 .streak-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
 .streak-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 16px; text-align: center; }
@@ -257,6 +272,16 @@ body {
   </div>
 </div>
 <div class="content" id="content"></div>
+<div id="tplModal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeTplModal()">
+  <div class="modal-box">
+    <div class="modal-title">Vorlagen <button class="modal-close" onclick="closeTplModal()">✕</button></div>
+    <div class="tpl-list" id="tplList"></div>
+    <div class="tpl-save-row">
+      <input class="tpl-input" id="tplNameInput" placeholder="Vorlagenname..." maxlength="40">
+      <button class="btn-save" onclick="saveAsTemplate()">Speichern</button>
+    </div>
+  </div>
+</div>
 <canvas id="confettiCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none"></canvas>
 <input type="file" id="csvInput" accept=".csv,.txt" style="display:none">
 
@@ -320,6 +345,57 @@ function archiveWeek(weekId,oldChecked){
 function loadData(){try{const r=localStorage.getItem(STORE_KEY);if(r){const d=JSON.parse(r);schedule=d.schedule||[];const wid=getWeekId();if(d.weekId&&d.weekId!==wid){archiveWeek(d.weekId,d.checked||{});checked={};}else{checked=d.checked||{};}}}catch(e){}}
 function saveData(){try{localStorage.setItem(STORE_KEY,JSON.stringify({weekId:getWeekId(),checked,schedule}));}catch(e){}}
 
+const TEMPLATES_KEY="wochenplan-templates-v1";
+function loadTemplates(){try{return JSON.parse(localStorage.getItem(TEMPLATES_KEY)||"{}");}catch(e){return{};}}
+function saveTemplates(t){try{localStorage.setItem(TEMPLATES_KEY,JSON.stringify(t));}catch(e){}}
+function openTplModal(){
+  const t=loadTemplates();const list=document.getElementById("tplList");
+  const keys=Object.keys(t);
+  list.innerHTML=keys.length?keys.map(n=>`<div class="tpl-row"><div><div class="tpl-name">${n}</div><div class="tpl-meta">${t[n].items} Einträge</div></div><button class="tpl-load" onclick="loadTemplate('${n.replace(/'/g,"\\'")}')">Laden</button><button class="tpl-del" onclick="deleteTemplate('${n.replace(/'/g,"\\'")}')">✕</button></div>`).join(""):'<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:16px">Noch keine Vorlagen gespeichert</div>';
+  document.getElementById("tplModal").style.display="flex";
+}
+function closeTplModal(){document.getElementById("tplModal").style.display="none";}
+function saveAsTemplate(){
+  const name=document.getElementById("tplNameInput").value.trim();
+  if(!name){toast("Name eingeben",true);return;}
+  if(!schedule.length){toast("Kein Plan geladen",true);return;}
+  const t=loadTemplates();t[name]={schedule:JSON.parse(JSON.stringify(schedule)),items:schedule.length};
+  saveTemplates(t);toast("✓ Vorlage gespeichert");openTplModal();
+}
+function loadTemplate(name){
+  if(!confirm("Vorlage '"+name+"' laden? Aktueller Plan wird ersetzt."))return;
+  const t=loadTemplates();if(!t[name])return;
+  schedule=JSON.parse(JSON.stringify(t[name].schedule));checked={};saveData();closeTplModal();render();toast("✓ Vorlage geladen");
+}
+function deleteTemplate(name){
+  if(!confirm("Vorlage '"+name+"' löschen?"))return;
+  const t=loadTemplates();delete t[name];saveTemplates(t);openTplModal();
+}
+
+function exportICal(){
+  if(!schedule.length){toast("Kein Plan geladen",true);return;}
+  const today=new Date();const todayDow=today.getDay();
+  const lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Wochenplan//DE","X-WR-CALNAME:Wochenplan","X-WR-TIMEZONE:Europe/Berlin"];
+  schedule.forEach((item,i)=>{
+    const dayIdx=DAYS.indexOf(item.day);const jsDow=dayIdx<6?dayIdx+1:0;
+    let daysAhead=jsDow-todayDow;if(daysAhead<0)daysAhead+=7;
+    const d=new Date(today);d.setDate(today.getDate()+daysAhead);
+    const ds=d.toISOString().replace(/[-:]/g,"").substring(0,8);
+    const startM=parseTimeStart(item.time),endM=parseTimeEnd(item.time)||(startM!=null?startM+parseDuration(item.duration):null);
+    lines.push("BEGIN:VEVENT","UID:wochenplan-"+i+"-"+ds+"@local");
+    lines.push("SUMMARY:"+item.activity.replace(/[,;\\]/g,c=>"\\"+c));
+    if(startM!=null){
+      const fmt=m=>String(Math.floor(m/60)).padStart(2,"0")+String(m%60).padStart(2,"0")+"00";
+      lines.push("DTSTART:"+ds+"T"+fmt(startM));
+      lines.push("DTEND:"+ds+"T"+fmt(endM||startM+60));
+    } else {lines.push("DTSTART;VALUE=DATE:"+ds);}
+    if(item.notes)lines.push("DESCRIPTION:"+item.notes.replace(/[,;\\]/g,c=>"\\"+c));
+    lines.push("END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([lines.join("\r\n")],{type:"text/calendar"}));a.download="wochenplan.ics";a.click();toast("✓ Kalender exportiert");
+}
+
 function toast(msg,isErr){const el=document.createElement("div");el.className="toast"+(isErr?" toast-error":"");el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2500);}
 
 function parseCSV(text){
@@ -381,8 +457,14 @@ function toggle(key){
   checked[key]=!checked[key];if(!checked[key])delete checked[key];saveData();
   if(wasUnchecked){
     const day=key.substring(0,key.lastIndexOf("-"));
+    const idx=parseInt(key.substring(key.lastIndexOf("-")+1));
     const ds=getDayStats();const s=ds[day];
     if(s.total>0&&s.done===s.total)launchConfetti();
+    // Remove one-time items after a brief delay
+    if(schedule[idx]&&schedule[idx].oneTime){
+      setTimeout(()=>{deleteItem(idx);},700);
+      return;
+    }
   }
   render();
 }
@@ -397,7 +479,8 @@ function saveEdit(){
     time:f.querySelector('[name=time]').value,
     duration:f.querySelector('[name=duration]').value,
     critical:f.querySelector('[name=critical]').value,
-    notes:f.querySelector('[name=notes]').value};
+    notes:f.querySelector('[name=notes]').value,
+    oneTime:f.querySelector('[name=oneTime]').checked};
   editIdx=null;saveData();render();
 }
 function deleteItem(idx){
@@ -423,7 +506,8 @@ function saveNewItem(){
     time:f.querySelector('[name=time]').value,
     duration:f.querySelector('[name=duration]').value||"60min",
     critical:f.querySelector('[name=critical]').value,
-    notes:f.querySelector('[name=notes]').value});
+    notes:f.querySelector('[name=notes]').value,
+    oneTime:f.querySelector('[name=oneTime]').checked});
   isAdding=false;saveData();render();toast("✓ Eintrag hinzugefügt");
 }
 
@@ -498,8 +582,8 @@ function render(){
     +wid.split("W")[1]+' · '+new Date().toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"});
   const actions=document.getElementById("headerActions");
   actions.innerHTML=schedule.length>0?
-    '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ Import</button><button class="btn-sm btn-export" onclick="exportCSV()">⬇ Export</button><button class="btn-sm btn-reset" onclick="resetWeek()">↻ Reset</button><button class="btn-sm btn-clear" onclick="clearSchedule()">✗</button>':
-    '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ CSV Import</button>';
+    '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ Import</button><button class="btn-sm btn-export" onclick="exportCSV()">CSV</button><button class="btn-sm btn-export" onclick="exportICal()">iCal</button><button class="btn-sm" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.2);color:var(--accent-purple)" onclick="openTplModal()">Vorlagen</button><button class="btn-sm btn-reset" onclick="resetWeek()">↻</button><button class="btn-sm btn-clear" onclick="clearSchedule()">✗</button>':
+    '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ CSV Import</button><button class="btn-sm" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.2);color:var(--accent-purple)" onclick="openTplModal()">Vorlagen</button>';
   const tabsEl=document.getElementById("tabs");
   tabsEl.innerHTML=schedule.length>0?[{id:"day",label:"Tagesansicht"},{id:"overview",label:"Übersicht"},{id:"progress",label:"Fortschritt"},{id:"history",label:"Verlauf"}].map(t=>`<button class="tab${currentView===t.id?" active":""}" onclick="setView('${t.id}')">${t.label}</button>`).join(""):"";
   const c=document.getElementById("content");
@@ -567,6 +651,10 @@ function renderDay(c,ds,todayIdx){
           <div><label class="edit-label">Kritisch</label><select class="edit-select" name="critical">${editOpts.map(o=>`<option${item.critical===o?" selected":""}>${o}</option>`).join("")}</select></div>
         </div>
         <div style="margin-bottom:10px"><label class="edit-label">Notizen</label><input class="edit-input" name="notes" value="${esc(item.notes)}"></div>
+        <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="oneTime" id="oneTimeChk" ${item.oneTime?"checked":""} style="accent-color:var(--accent-purple);width:16px;height:16px">
+          <label for="oneTimeChk" style="font-size:12px;color:var(--text-muted);cursor:pointer">Einmalig (nach Abhaken entfernen)</label>
+        </div>
         <div class="edit-actions">
           <button class="btn-save" onclick="saveEdit()">Speichern</button>
           <button class="btn-cancel" onclick="cancelEdit()">Abbrechen</button>
@@ -583,6 +671,7 @@ function renderDay(c,ds,todayIdx){
         ${item.notes?`<div class="item-notes">${esc(item.notes)}</div>`:""}
       </div>
       <div class="item-duration">${esc(item.duration)}</div>
+      ${item.oneTime?'<span class="badge-onetime">einmalig</span>':""}
       ${badgeHTML(item.critical)}
       <button class="btn-edit" onclick="event.stopPropagation();startEdit(${item.globalIdx})">✎</button>
     </div>`;
@@ -598,6 +687,10 @@ function renderDay(c,ds,todayIdx){
         <div><label class="edit-label">Kritisch</label><select class="edit-select" name="critical">${["Nein","Ja","JA!!!","Mittel","Niedrig"].map(o=>`<option>${o}</option>`).join("")}</select></div>
       </div>
       <div style="margin-bottom:10px"><label class="edit-label">Notizen</label><input class="edit-input" name="notes" placeholder="Optional..."></div>
+      <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        <input type="checkbox" name="oneTime" id="oneTimeChkNew" style="accent-color:var(--accent-purple);width:16px;height:16px">
+        <label for="oneTimeChkNew" style="font-size:12px;color:var(--text-muted);cursor:pointer">Einmalig (nach Abhaken entfernen)</label>
+      </div>
       <div class="edit-actions">
         <button class="btn-save" onclick="saveNewItem()">Hinzufügen</button>
         <button class="btn-cancel" onclick="cancelAdd()">Abbrechen</button>
