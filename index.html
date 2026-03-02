@@ -76,6 +76,12 @@ body {
 .tab.active { background: rgba(96,165,250,0.15); color: var(--accent-blue); }
 .content { max-width: 900px; margin: 0 auto; padding: 0 16px; }
 
+/* Status dot */
+.status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.status-online { background: var(--accent-green); }
+.status-offline { background: #EF4444; animation: pulse-red 1.5s infinite; }
+@keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
 /* Empty State */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; }
 .empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.8; }
@@ -105,7 +111,7 @@ body {
 /* Day Selector */
 .day-selector { display: flex; gap: 6px; padding: 20px 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .day-btn {
-  flex: 1; min-width: 50px; padding: 10px 4px 8px; border-radius: 12px; border: none;
+  flex: 1; min-width: 50px; padding: 10px 4px 6px; border-radius: 12px; border: none;
   background: rgba(30,41,59,0.5); cursor: pointer; text-align: center; transition: all 0.2s;
 }
 .day-btn.active {
@@ -117,8 +123,12 @@ body {
 .day-btn-count { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 3px; }
 .day-btn-count.done { color: var(--accent-green); }
 .day-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-blue); margin: 4px auto 0; }
-.day-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary); }
-.day-title span { font-size: 13px; color: var(--text-dim); font-weight: 400; margin-left: 10px; }
+.day-reset-btn { font-size: 9px; color: var(--text-dark); background: none; border: none; cursor: pointer; padding: 2px 4px; margin-top: 2px; display: block; width: 100%; line-height: 1; }
+.day-reset-btn:hover { color: #F87171; }
+
+.day-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; }
+.day-title-left { display: flex; align-items: baseline; gap: 8px; }
+.day-title-count { font-size: 13px; color: var(--text-dim); font-weight: 400; }
 
 .items { display: flex; flex-direction: column; gap: 6px; }
 .item {
@@ -128,6 +138,7 @@ body {
   display: flex; align-items: center; gap: 12px;
 }
 .item.checked { background: rgba(52,211,153,0.06); border-color: rgba(52,211,153,0.15); opacity: 0.65; }
+.item.time-now { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.3); }
 .checkbox {
   width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
   border: 2px solid var(--text-dark); background: transparent;
@@ -137,6 +148,8 @@ body {
 .check-mark { color: var(--accent-green); font-size: 13px; font-weight: 700; display: none; }
 .item.checked .check-mark { display: block; }
 .item-time { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); min-width: 86px; flex-shrink: 0; font-weight: 500; }
+.item.time-now .item-time { color: var(--accent-blue); }
+.now-badge { display: inline-block; font-size: 8px; background: var(--accent-blue); color: #fff; border-radius: 3px; padding: 1px 4px; font-weight: 700; vertical-align: middle; margin-left: 3px; }
 .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .item-content { flex: 1; min-width: 0; }
 .item-activity { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
@@ -151,6 +164,7 @@ body {
 .btn-edit { background: none; border: none; color: var(--text-dark); cursor: pointer; font-size: 14px; padding: 4px; flex-shrink: 0; }
 
 .edit-form { background: rgba(30,41,59,0.8); border-radius: 12px; padding: 16px; border: 1px solid rgba(96,165,250,0.3); }
+.edit-form-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
 .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 .edit-label { font-size: 10px; color: var(--text-dim); font-weight: 600; display: block; margin-bottom: 3px; }
 .edit-input, .edit-select {
@@ -158,9 +172,12 @@ body {
   padding: 6px 10px; color: var(--text-secondary); font-size: 13px; font-family: var(--font-body);
 }
 .edit-input.mono { font-family: var(--font-mono); }
-.edit-actions { display: flex; gap: 8px; }
+.edit-actions { display: flex; gap: 8px; align-items: center; }
 .btn-save { background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3); color: var(--accent-green); border-radius: 8px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-cancel { background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.2); color: var(--text-muted); border-radius: 8px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-delete { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #F87171; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: auto; }
+.btn-add-item { width: 100%; background: rgba(52,211,153,0.05); border: 1px dashed rgba(52,211,153,0.25); color: var(--accent-green); border-radius: 10px; padding: 11px; cursor: pointer; font-size: 13px; font-weight: 600; text-align: center; margin-top: 8px; transition: all 0.2s; font-family: var(--font-body); }
+.btn-add-item:hover { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.4); }
 
 .overview-day { margin-bottom: 20px; }
 .overview-day-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -261,9 +278,11 @@ function categorize(a){const l=a.toLowerCase();
 
 function parseDuration(d){if(!d)return 60;if(d.includes("h")&&!d.includes("min"))return parseFloat(d)*60;if(d.includes("min"))return parseInt(d);return 60;}
 function fmtMins(n){return n>=60?Math.floor(n/60)+"h"+(n%60>0?" "+n%60+"m":""):n+"m";}
+function parseTimeStart(t){if(!t)return null;const m=t.match(/^(\d{1,2}):(\d{2})/);return m?+m[1]*60+ +m[2]:null;}
+function parseTimeEnd(t){if(!t)return null;const m=t.match(/(\d{1,2}):(\d{2})\s*$/);return m?+m[1]*60+ +m[2]:null;}
 
 const STORE_KEY="wochenplan-data-v3";
-let schedule=[],checked={},selectedDay=DAYS[new Date().getDay()===0?6:new Date().getDay()-1],currentView="day",editIdx=null;
+let schedule=[],checked={},selectedDay=DAYS[new Date().getDay()===0?6:new Date().getDay()-1],currentView="day",editIdx=null,isAdding=false;
 
 function getWeekId(){const n=new Date(),s=new Date(n.getFullYear(),0,1);return n.getFullYear()+"-W"+Math.ceil((n-s)/604800000);}
 function loadData(){try{const r=localStorage.getItem(STORE_KEY);if(r){const d=JSON.parse(r);schedule=d.schedule||[];checked=d.weekId!==getWeekId()?{}:(d.checked||{});}}catch(e){}}
@@ -301,7 +320,6 @@ function handleCSVUpload(file){
   const tryParse=(encoding)=>{const r=new FileReader();
     r.onload=function(e){
       const text=e.target.result;
-      // If UTF-8 produced replacement chars, retry with Latin-1
       if(encoding==="UTF-8"&&/\ufffd/.test(text)){tryParse("ISO-8859-1");return;}
       try{const items=parseCSV(text);schedule=items;checked={};saveData();toast("✓ "+items.length+" Einträge importiert");render();}
       catch(err){toast("✗ "+err.message,true);}};
@@ -319,17 +337,54 @@ function exportCSV(){
 
 function clearSchedule(){if(!confirm("Gesamten Plan löschen?"))return;schedule=[];checked={};saveData();render();}
 function resetWeek(){if(!confirm("Alle Haken zurücksetzen?"))return;checked={};saveData();render();}
+function resetDay(day,e){
+  e.stopPropagation();
+  if(!confirm("Haken für "+DAY_LABELS[day]+" zurücksetzen?"))return;
+  Object.keys(checked).forEach(k=>{if(k.startsWith(day+"-"))delete checked[k];});
+  saveData();render();
+}
 function triggerImport(){document.getElementById("csvInput").click();}
 function toggle(key){checked[key]=!checked[key];if(!checked[key])delete checked[key];saveData();render();}
-function setDay(d){selectedDay=d;editIdx=null;render();}
-function setView(v){currentView=v;editIdx=null;render();}
-function startEdit(idx){editIdx=idx;render();}
+function setDay(d){selectedDay=d;editIdx=null;isAdding=false;render();}
+function setView(v){currentView=v;editIdx=null;isAdding=false;render();}
+function startEdit(idx){editIdx=idx;isAdding=false;render();}
 function cancelEdit(){editIdx=null;render();}
-function saveEdit(){const f=document.getElementById("editForm");if(!f)return;
-  schedule[editIdx]={...schedule[editIdx],activity:f.querySelector('[name=activity]').value,
-    time:f.querySelector('[name=time]').value,duration:f.querySelector('[name=duration]').value,
-    critical:f.querySelector('[name=critical]').value,notes:f.querySelector('[name=notes]').value};
-  editIdx=null;saveData();render();}
+function saveEdit(){
+  const f=document.getElementById("editForm");if(!f)return;
+  schedule[editIdx]={...schedule[editIdx],
+    activity:f.querySelector('[name=activity]').value,
+    time:f.querySelector('[name=time]').value,
+    duration:f.querySelector('[name=duration]').value,
+    critical:f.querySelector('[name=critical]').value,
+    notes:f.querySelector('[name=notes]').value};
+  editIdx=null;saveData();render();
+}
+function deleteItem(idx){
+  if(!confirm("Eintrag löschen?"))return;
+  const newChecked={};
+  Object.entries(checked).forEach(([key,val])=>{
+    if(!val)return;
+    const last=key.lastIndexOf("-");
+    const n=parseInt(key.substring(last+1));
+    if(n<idx)newChecked[key]=val;
+    else if(n>idx)newChecked[key.substring(0,last+1)+(n-1)]=val;
+  });
+  schedule.splice(idx,1);checked=newChecked;editIdx=null;isAdding=false;
+  saveData();render();
+}
+function addItem(){isAdding=true;editIdx=null;render();}
+function cancelAdd(){isAdding=false;render();}
+function saveNewItem(){
+  const f=document.getElementById("addForm");if(!f)return;
+  const activity=f.querySelector('[name=activity]').value.trim();
+  if(!activity){toast("Aktivität eingeben",true);return;}
+  schedule.push({day:selectedDay,activity,
+    time:f.querySelector('[name=time]').value,
+    duration:f.querySelector('[name=duration]').value||"60min",
+    critical:f.querySelector('[name=critical]').value,
+    notes:f.querySelector('[name=notes]').value});
+  isAdding=false;saveData();render();toast("✓ Eintrag hinzugefügt");
+}
 
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function badgeHTML(lv){if(!lv)return"";const l=lv.toLowerCase();if(l==="nein")return"";
@@ -345,7 +400,10 @@ function getCatStats(){const s={};schedule.forEach((item,i)=>{const cat=categori
 
 function render(){
   const wid=getWeekId();
-  document.getElementById("weekInfo").textContent="KW "+wid.split("W")[1]+" · "+new Date().toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"});
+  const isOnline=navigator.onLine;
+  document.getElementById("weekInfo").innerHTML=
+    '<span class="status-dot '+(isOnline?"status-online":"status-offline")+'"></span>KW '
+    +wid.split("W")[1]+' · '+new Date().toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"});
   const actions=document.getElementById("headerActions");
   actions.innerHTML=schedule.length>0?
     '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ Import</button><button class="btn-sm btn-export" onclick="exportCSV()">⬇ Export</button><button class="btn-sm btn-reset" onclick="resetWeek()">↻ Reset</button><button class="btn-sm btn-clear" onclick="clearSchedule()">✗</button>':
@@ -382,25 +440,80 @@ Di (Arbeit);06:30-07:00;Dreaming Spanish;30min;JA;...</div>
 }
 
 function renderDay(c,ds,todayIdx){
+  const nowMins=new Date().getHours()*60+new Date().getMinutes();
+  const isToday=DAYS[todayIdx]===selectedDay;
   let h='<div class="day-selector">';
-  DAYS.forEach((d,i)=>{const s=ds[d],pct=s.total>0?s.done/s.total*100:0;
-    h+=`<button class="day-btn${selectedDay===d?" active":""}" onclick="setDay('${d}')"><div class="day-btn-label">${d}</div><div class="day-btn-count${pct===100&&s.total>0?" done":""}">${s.done}/${s.total}</div>${i===todayIdx?'<div class="day-dot"></div>':""}${pct===100&&s.total>0?'<div style="font-size:10px;margin-top:2px">✓</div>':""}</button>`;});
+  DAYS.forEach((d,i)=>{
+    const s=ds[d],pct=s.total>0?s.done/s.total*100:0;
+    const hasDone=s.done>0;
+    h+=`<button class="day-btn${selectedDay===d?" active":""}" onclick="setDay('${d}')">
+      <div class="day-btn-label">${d}</div>
+      <div class="day-btn-count${pct===100&&s.total>0?" done":""}">${s.done}/${s.total}</div>
+      ${i===todayIdx?'<div class="day-dot"></div>':""}
+      ${pct===100&&s.total>0?'<div style="font-size:10px;margin-top:2px">✓</div>':""}
+      ${hasDone?`<button class="day-reset-btn" onclick="resetDay('${d}',event)" title="Haken zurücksetzen">↺</button>`:""}
+    </button>`;
+  });
   h+='</div>';
   const dayItems=schedule.map((s,i)=>({...s,globalIdx:i})).filter(s=>s.day===selectedDay);
-  h+=`<div class="day-title">${DAY_LABELS[selectedDay]}<span>${dayItems.length} Einträge</span></div><div class="items">`;
+  const editOpts=["Nein","Ja","JA!!!","Mittel","Niedrig"];
+  h+=`<div class="day-title">
+    <div class="day-title-left">${DAY_LABELS[selectedDay]}<span class="day-title-count">${dayItems.length} Einträge</span></div>
+    <button class="btn-sm btn-export" style="font-size:11px;padding:5px 10px" onclick="addItem()">+ Eintrag</button>
+  </div><div class="items">`;
   dayItems.forEach(item=>{
     const key=item.day+"-"+item.globalIdx,isDone=!!checked[key],cat=categorize(item.activity),ci=CATEGORIES[cat]||CATEGORIES["Pause/Freizeit"];
+    const startM=parseTimeStart(item.time),endM=parseTimeEnd(item.time);
+    const isNow=isToday&&startM!==null&&endM!==null&&nowMins>=startM&&nowMins<endM;
     if(editIdx===item.globalIdx){
-      h+=`<div class="edit-form" id="editForm"><div class="edit-grid">
-        <div><label class="edit-label">Aktivität</label><input class="edit-input" name="activity" value="${esc(item.activity)}"></div>
-        <div><label class="edit-label">Uhrzeit</label><input class="edit-input mono" name="time" value="${esc(item.time)}"></div>
-        <div><label class="edit-label">Dauer</label><input class="edit-input mono" name="duration" value="${esc(item.duration)}"></div>
-        <div><label class="edit-label">Kritisch</label><select class="edit-select" name="critical">${["Nein","Ja","JA!!!","Mittel","Niedrig"].map(o=>`<option${item.critical===o?" selected":""}>${o}</option>`).join("")}</select></div>
-      </div><div style="margin-bottom:10px"><label class="edit-label">Notizen</label><input class="edit-input" name="notes" value="${esc(item.notes)}"></div>
-      <div class="edit-actions"><button class="btn-save" onclick="saveEdit()">Speichern</button><button class="btn-cancel" onclick="cancelEdit()">Abbrechen</button></div></div>`;return;}
-    h+=`<div class="item${isDone?" checked":""}" onclick="toggle('${key}')"><div class="checkbox"><span class="check-mark">✓</span></div><div class="item-time">${esc(item.time)}</div><div class="cat-dot" style="background:${ci.color}"></div><div class="item-content"><div class="item-activity">${esc(item.activity)}</div>${item.notes?`<div class="item-notes">${esc(item.notes)}</div>`:""}</div><div class="item-duration">${esc(item.duration)}</div>${badgeHTML(item.critical)}<button class="btn-edit" onclick="event.stopPropagation();startEdit(${item.globalIdx})">✎</button></div>`;
+      h+=`<div class="edit-form" id="editForm">
+        <div class="edit-form-title">✎ Eintrag bearbeiten</div>
+        <div class="edit-grid">
+          <div><label class="edit-label">Aktivität</label><input class="edit-input" name="activity" value="${esc(item.activity)}"></div>
+          <div><label class="edit-label">Uhrzeit</label><input class="edit-input mono" name="time" value="${esc(item.time)}"></div>
+          <div><label class="edit-label">Dauer</label><input class="edit-input mono" name="duration" value="${esc(item.duration)}"></div>
+          <div><label class="edit-label">Kritisch</label><select class="edit-select" name="critical">${editOpts.map(o=>`<option${item.critical===o?" selected":""}>${o}</option>`).join("")}</select></div>
+        </div>
+        <div style="margin-bottom:10px"><label class="edit-label">Notizen</label><input class="edit-input" name="notes" value="${esc(item.notes)}"></div>
+        <div class="edit-actions">
+          <button class="btn-save" onclick="saveEdit()">Speichern</button>
+          <button class="btn-cancel" onclick="cancelEdit()">Abbrechen</button>
+          <button class="btn-delete" onclick="deleteItem(${item.globalIdx})">Löschen</button>
+        </div></div>`;
+      return;
+    }
+    h+=`<div class="item${isDone?" checked":""}${isNow?" time-now":""}" onclick="toggle('${key}')">
+      <div class="checkbox"><span class="check-mark">✓</span></div>
+      <div class="item-time">${esc(item.time)}${isNow?'<span class="now-badge">JETZT</span>':""}</div>
+      <div class="cat-dot" style="background:${ci.color}"></div>
+      <div class="item-content">
+        <div class="item-activity">${esc(item.activity)}</div>
+        ${item.notes?`<div class="item-notes">${esc(item.notes)}</div>`:""}
+      </div>
+      <div class="item-duration">${esc(item.duration)}</div>
+      ${badgeHTML(item.critical)}
+      <button class="btn-edit" onclick="event.stopPropagation();startEdit(${item.globalIdx})">✎</button>
+    </div>`;
   });
-  h+='</div>';c.innerHTML=h;
+  h+='</div>';
+  if(isAdding){
+    h+=`<div class="edit-form" id="addForm" style="margin-top:8px">
+      <div class="edit-form-title">+ Neuer Eintrag — ${DAY_LABELS[selectedDay]}</div>
+      <div class="edit-grid">
+        <div><label class="edit-label">Aktivität *</label><input class="edit-input" name="activity" placeholder="z.B. Sport" autofocus></div>
+        <div><label class="edit-label">Uhrzeit</label><input class="edit-input mono" name="time" placeholder="08:00-09:00"></div>
+        <div><label class="edit-label">Dauer</label><input class="edit-input mono" name="duration" value="60min"></div>
+        <div><label class="edit-label">Kritisch</label><select class="edit-select" name="critical">${["Nein","Ja","JA!!!","Mittel","Niedrig"].map(o=>`<option>${o}</option>`).join("")}</select></div>
+      </div>
+      <div style="margin-bottom:10px"><label class="edit-label">Notizen</label><input class="edit-input" name="notes" placeholder="Optional..."></div>
+      <div class="edit-actions">
+        <button class="btn-save" onclick="saveNewItem()">Hinzufügen</button>
+        <button class="btn-cancel" onclick="cancelAdd()">Abbrechen</button>
+      </div></div>`;
+  } else {
+    h+=`<button class="btn-add-item" onclick="addItem()">+ Neuen Eintrag hinzufügen</button>`;
+  }
+  c.innerHTML=h;
 }
 
 function renderOverview(c,ds){
@@ -436,6 +549,8 @@ function renderProgress(c){
 }
 
 document.getElementById("csvInput").addEventListener("change",e=>{if(e.target.files[0])handleCSVUpload(e.target.files[0]);e.target.value="";});
+window.addEventListener("online",render);
+window.addEventListener("offline",render);
 loadData();render();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
