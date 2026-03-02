@@ -204,6 +204,22 @@ body {
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 .ring-text { font-family: var(--font-mono); font-weight: 700; }
 
+/* History / Streak */
+.streak-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+.streak-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 16px; text-align: center; }
+.streak-num { font-size: 32px; font-weight: 800; font-family: var(--font-mono); }
+.streak-fire { font-size: 18px; }
+.streak-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.streak-sub { font-size: 10px; color: var(--text-dark); margin-top: 2px; }
+.history-bars { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 16px; }
+.history-bars-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.bar-week { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); min-width: 52px; }
+.bar-track { flex: 1; height: 20px; background: #1E293B; border-radius: 5px; overflow: hidden; position: relative; }
+.bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s ease; display: flex; align-items: center; padding-left: 6px; }
+.bar-pct { font-size: 10px; font-weight: 700; color: #fff; font-family: var(--font-mono); }
+.bar-sport { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); min-width: 36px; text-align: right; }
+.history-empty { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 14px; }
 .toast {
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
   background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3);
@@ -283,10 +299,25 @@ function parseTimeStart(t){if(!t)return null;const m=t.match(/^(\d{1,2}):(\d{2})
 function parseTimeEnd(t){if(!t)return null;const m=t.match(/(\d{1,2}):(\d{2})\s*$/);return m?+m[1]*60+ +m[2]:null;}
 
 const STORE_KEY="wochenplan-data-v3";
+const HISTORY_KEY="wochenplan-history-v1";
 let schedule=[],checked={},selectedDay=DAYS[new Date().getDay()===0?6:new Date().getDay()-1],currentView="day",editIdx=null,isAdding=false;
 
 function getWeekId(){const n=new Date(),s=new Date(n.getFullYear(),0,1);return n.getFullYear()+"-W"+Math.ceil((n-s)/604800000);}
-function loadData(){try{const r=localStorage.getItem(STORE_KEY);if(r){const d=JSON.parse(r);schedule=d.schedule||[];checked=d.weekId!==getWeekId()?{}:(d.checked||{});}}catch(e){}}
+function loadHistory(){try{return JSON.parse(localStorage.getItem(HISTORY_KEY)||"{}");}catch(e){return{};}}
+function saveHistory(h){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(h));}catch(e){}}
+function archiveWeek(weekId,oldChecked){
+  if(!schedule.length)return;
+  const h=loadHistory();
+  const done=schedule.filter((s,i)=>oldChecked[s.day+"-"+i]).length;
+  const spD=schedule.filter((s,i)=>categorize(s.activity)==="Sport"&&oldChecked[s.day+"-"+i]).length;
+  const spT=schedule.filter(s=>categorize(s.activity)==="Sport").length;
+  const snD=schedule.filter((s,i)=>categorize(s.activity)==="Spanish"&&oldChecked[s.day+"-"+i]).length;
+  const snT=schedule.filter(s=>categorize(s.activity)==="Spanish").length;
+  h[weekId]={pct:Math.round(done/schedule.length*100),sport:spD,sportT:spT,spanish:snD,spanishT:snT,done,total:schedule.length};
+  const keys=Object.keys(h).sort();if(keys.length>16)delete h[keys[0]];
+  saveHistory(h);
+}
+function loadData(){try{const r=localStorage.getItem(STORE_KEY);if(r){const d=JSON.parse(r);schedule=d.schedule||[];const wid=getWeekId();if(d.weekId&&d.weekId!==wid){archiveWeek(d.weekId,d.checked||{});checked={};}else{checked=d.checked||{};}}}catch(e){}}
 function saveData(){try{localStorage.setItem(STORE_KEY,JSON.stringify({weekId:getWeekId(),checked,schedule}));}catch(e){}}
 
 function toast(msg,isErr){const el=document.createElement("div");el.className="toast"+(isErr?" toast-error":"");el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2500);}
@@ -470,11 +501,11 @@ function render(){
     '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ Import</button><button class="btn-sm btn-export" onclick="exportCSV()">⬇ Export</button><button class="btn-sm btn-reset" onclick="resetWeek()">↻ Reset</button><button class="btn-sm btn-clear" onclick="clearSchedule()">✗</button>':
     '<button class="btn-sm btn-import" onclick="triggerImport()">⬆ CSV Import</button>';
   const tabsEl=document.getElementById("tabs");
-  tabsEl.innerHTML=schedule.length>0?[{id:"day",label:"Tagesansicht"},{id:"overview",label:"Wochenübersicht"},{id:"progress",label:"Fortschritt"}].map(t=>`<button class="tab${currentView===t.id?" active":""}" onclick="setView('${t.id}')">${t.label}</button>`).join(""):"";
+  tabsEl.innerHTML=schedule.length>0?[{id:"day",label:"Tagesansicht"},{id:"overview",label:"Übersicht"},{id:"progress",label:"Fortschritt"},{id:"history",label:"Verlauf"}].map(t=>`<button class="tab${currentView===t.id?" active":""}" onclick="setView('${t.id}')">${t.label}</button>`).join(""):"";
   const c=document.getElementById("content");
   if(schedule.length===0){renderEmpty(c);return;}
   const ds=getDayStats(),ti=new Date().getDay()===0?6:new Date().getDay()-1;
-  if(currentView==="day")renderDay(c,ds,ti);else if(currentView==="overview")renderOverview(c,ds);else renderProgress(c);
+  if(currentView==="day")renderDay(c,ds,ti);else if(currentView==="overview")renderOverview(c,ds);else if(currentView==="history")renderHistory(c);else renderProgress(c);
   c.innerHTML+=`<div class="legend">${Object.entries(CATEGORIES).map(([n,info])=>`<div class="legend-item"><div class="legend-dot" style="background:${info.color}"></div>${info.icon} ${n}</div>`).join("")}</div>`;
 }
 
@@ -608,6 +639,56 @@ function renderProgress(c){
     <div><div class="stat-value">${spD}/${spT}</div><div class="stat-label">Sport Sessions</div></div>
     <div><div class="stat-value">${snD}/${snT}</div><div class="stat-label">Spanish Sessions</div></div>
   </div></div></div>`;c.innerHTML=h;
+}
+
+function getStreaks(){
+  const h=loadHistory();
+  const weeks=Object.keys(h).sort();
+  let sp=0,sn=0,ov=0;
+  for(let i=weeks.length-1;i>=0;i--){const w=h[weeks[i]];if(w.sport>0)sp++;else break;}
+  for(let i=weeks.length-1;i>=0;i--){const w=h[weeks[i]];if(w.spanish>0)sn++;else break;}
+  for(let i=weeks.length-1;i>=0;i--){const w=h[weeks[i]];if(w.pct>=70)ov++;else break;}
+  return{sport:sp,spanish:sn,overall:ov};
+}
+
+function renderHistory(c){
+  const h=loadHistory();
+  const weeks=Object.keys(h).sort();
+  const st=getStreaks();
+  let html='<div style="padding-top:20px"><h2 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text-primary)">Verlauf & Streaks</h2>';
+  html+=`<div class="streak-grid">
+    <div class="streak-card"><div class="streak-num" style="color:#EF4444">${st.sport}<span class="streak-fire">${st.sport>0?"🔥":""}</span></div><div class="streak-label">Sport Streak</div><div class="streak-sub">Wochen in Folge</div></div>
+    <div class="streak-card"><div class="streak-num" style="color:#8B5CF6">${st.spanish}<span class="streak-fire">${st.spanish>0?"🔥":""}</span></div><div class="streak-label">Spanish Streak</div><div class="streak-sub">Wochen in Folge</div></div>
+    <div class="streak-card"><div class="streak-num" style="color:var(--accent-blue)">${st.overall}<span class="streak-fire">${st.overall>0?"🔥":""}</span></div><div class="streak-label">Gesamt ≥70%</div><div class="streak-sub">Wochen in Folge</div></div>
+  </div>`;
+  if(!weeks.length){
+    html+='<div class="history-empty">📊 Noch keine Daten — nach dem ersten Wochenwechsel erscheint hier dein Verlauf</div>';
+  } else {
+    html+='<div class="history-bars"><div class="history-bars-title">Wöchentlicher Fortschritt</div>';
+    weeks.slice(-10).reverse().forEach(wid=>{
+      const w=h[wid];
+      const color=w.pct>=80?"var(--accent-green)":w.pct>=50?"var(--accent-blue)":"#F59E0B";
+      const label=wid.replace(/\d{4}-/,"");
+      html+=`<div class="bar-row">
+        <div class="bar-week">${label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${w.pct}%;background:${color}"><span class="bar-pct">${w.pct>10?w.pct+"%":""}</span></div></div>
+        <div class="bar-sport">💪${w.sport} 🇪🇸${w.spanish}</div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  // Current week preview
+  const tI=schedule.length,dI=Object.values(checked).filter(Boolean).length;
+  const curPct=tI>0?Math.round(dI/tI*100):0;
+  const curColor=curPct>=80?"var(--accent-green)":curPct>=50?"var(--accent-blue)":"#F59E0B";
+  html+=`<div class="history-bars" style="margin-top:12px"><div class="history-bars-title">Diese Woche (${getWeekId().replace(/\d{4}-/,"")})</div>
+    <div class="bar-row">
+      <div class="bar-week">aktuell</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${curPct}%;background:${curColor}"><span class="bar-pct">${curPct>10?curPct+"%":""}</span></div></div>
+      <div class="bar-sport">${dI}/${tI}</div>
+    </div></div>`;
+  html+='</div>';
+  c.innerHTML=html;
 }
 
 document.getElementById("csvInput").addEventListener("change",e=>{if(e.target.files[0])handleCSVUpload(e.target.files[0]);e.target.value="";});
