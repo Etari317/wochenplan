@@ -241,6 +241,7 @@ body {
   </div>
 </div>
 <div class="content" id="content"></div>
+<canvas id="confettiCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;display:none"></canvas>
 <input type="file" id="csvInput" accept=".csv,.txt" style="display:none">
 
 <script>
@@ -344,7 +345,16 @@ function resetDay(day,e){
   saveData();render();
 }
 function triggerImport(){document.getElementById("csvInput").click();}
-function toggle(key){checked[key]=!checked[key];if(!checked[key])delete checked[key];saveData();render();}
+function toggle(key){
+  const wasUnchecked=!checked[key];
+  checked[key]=!checked[key];if(!checked[key])delete checked[key];saveData();
+  if(wasUnchecked){
+    const day=key.substring(0,key.lastIndexOf("-"));
+    const ds=getDayStats();const s=ds[day];
+    if(s.total>0&&s.done===s.total)launchConfetti();
+  }
+  render();
+}
 function setDay(d){selectedDay=d;editIdx=null;isAdding=false;render();}
 function setView(v){currentView=v;editIdx=null;isAdding=false;render();}
 function startEdit(idx){editIdx=idx;isAdding=false;render();}
@@ -384,6 +394,57 @@ function saveNewItem(){
     critical:f.querySelector('[name=critical]').value,
     notes:f.querySelector('[name=notes]').value});
   isAdding=false;saveData();render();toast("✓ Eintrag hinzugefügt");
+}
+
+function launchConfetti(){
+  const canvas=document.getElementById("confettiCanvas");
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  canvas.style.display="block";
+  const ctx=canvas.getContext("2d");
+  const colors=["#60A5FA","#A78BFA","#34D399","#F59E0B","#F472B6","#FB923C"];
+  const particles=Array.from({length:120},()=>({
+    x:Math.random()*canvas.width,y:-10,
+    vx:(Math.random()-0.5)*4,vy:Math.random()*4+2,
+    color:colors[Math.floor(Math.random()*colors.length)],
+    size:Math.random()*8+4,rot:Math.random()*360,rotV:(Math.random()-0.5)*8,
+    shape:Math.random()>0.5?"rect":"circle"
+  }));
+  let frame=0;
+  function animate(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.rot+=p.rotV;
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color;ctx.globalAlpha=Math.max(0,1-frame/160);
+      if(p.shape==="rect"){ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);}
+      else{ctx.beginPath();ctx.arc(0,0,p.size/2,0,Math.PI*2);ctx.fill();}
+      ctx.restore();
+    });
+    frame++;
+    if(frame<180)requestAnimationFrame(animate);else{canvas.style.display="none";ctx.clearRect(0,0,canvas.width,canvas.height);}
+  }
+  animate();
+}
+
+function attachSwipeListeners(){
+  document.querySelectorAll(".item[data-key]").forEach(el=>{
+    let startX=0,startY=0,swiped=false;
+    el.addEventListener("touchstart",e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;swiped=false;},{passive:true});
+    el.addEventListener("touchmove",e=>{
+      const dx=e.touches[0].clientX-startX,dy=e.touches[0].clientY-startY;
+      if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>10){
+        swiped=true;
+        el.style.transform=`translateX(${Math.max(-70,Math.min(70,dx*0.55))}px)`;
+        el.style.transition="none";e.preventDefault();
+      }
+    },{passive:false});
+    el.addEventListener("touchend",e=>{
+      const dx=e.changedTouches[0].clientX-startX;
+      el.style.transition="transform 0.2s ease";el.style.transform="";
+      if(swiped&&Math.abs(dx)>60){e.preventDefault();toggle(el.getAttribute("data-key"));}
+      setTimeout(()=>{el.style.transition="";},200);
+    },{passive:false});
+  });
 }
 
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -482,7 +543,7 @@ function renderDay(c,ds,todayIdx){
         </div></div>`;
       return;
     }
-    h+=`<div class="item${isDone?" checked":""}${isNow?" time-now":""}" onclick="toggle('${key}')">
+    h+=`<div class="item${isDone?" checked":""}${isNow?" time-now":""}" data-key="${key}" onclick="toggle('${key}')">
       <div class="checkbox"><span class="check-mark">✓</span></div>
       <div class="item-time">${esc(item.time)}${isNow?'<span class="now-badge">JETZT</span>':""}</div>
       <div class="cat-dot" style="background:${ci.color}"></div>
@@ -514,6 +575,7 @@ function renderDay(c,ds,todayIdx){
     h+=`<button class="btn-add-item" onclick="addItem()">+ Neuen Eintrag hinzufügen</button>`;
   }
   c.innerHTML=h;
+  attachSwipeListeners();
 }
 
 function renderOverview(c,ds){
